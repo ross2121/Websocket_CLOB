@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "futures-util",
  "once_cell",
+ "rand",
  "redis 0.29.5",
  "redis-queue-rs",
  "serde",

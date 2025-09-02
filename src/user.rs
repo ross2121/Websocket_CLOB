@@ -6,6 +6,7 @@ use tokio_tungstenite::tungstenite::client;
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
 use crate::types::IncomingMessage;
+use crate::usermanager::Usermanager;
 use crate::Subscription_manager::Subscrption_Manager;
 
 pub struct User{
@@ -42,7 +43,7 @@ impl User {
               Ok(Message::Text(text))=>{
                 if let Ok(parsedmessage)=serde_json::from_str::<IncomingMessage>(&text){
                     let mgr = Subscrption_Manager::instance();      // keep Arc alive
-    let mut client = mgr.lock().unwrap();    
+              let mut client = mgr.lock().unwrap();    
                     match parsedmessage{
                           IncomingMessage::Subscribe(msg)=>{
                             for s in msg.params{
@@ -64,7 +65,12 @@ impl User {
             }
           }
         }
-
+         let user_manager=Usermanager::instance();
+         let mut guard=user_manager.lock().await;
+         guard.user.remove(&id);
+         let sub_manager=Subscrption_Manager::instance();
+         let mut guard_manager=sub_manager.lock().unwrap();
+          guard_manager.userleft(id.clone());
        });
     }
 }

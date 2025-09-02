@@ -1,7 +1,12 @@
-use std::{net::TcpStream, sync::Arc};
-
+use std::{ sync::Arc};
+use tokio::net::TcpStream;
+use futures_util::StreamExt;
 use futures_util::{lock::Mutex, stream::{SplitSink, SplitStream}};
+use tokio_tungstenite::tungstenite::client;
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
+
+use crate::types::IncomingMessage;
+use crate::Subscription_manager::Subscrption_Manager;
 
 pub struct User{
     userid:String,
@@ -26,5 +31,40 @@ impl User {
     pub async fn unscubribe(&mut self,subscription_data:String){
         let mut unsubscribe=self.subscription.lock().await;
         unsubscribe.retain(|sub|sub.to_string()!=subscription_data);
+    }
+    pub fn addlistner(&mut self){
+       let id=self.userid.clone();
+       let mut stream=self.stream.take().unwrap();
+    
+       tokio::spawn(async move{
+        while  let Some(message)=stream.next().await {
+          match  message {
+              Ok(Message::Text(text))=>{
+                if let Ok(parsedmessage)=serde_json::from_str::<IncomingMessage>(&text){
+                    let mgr = Subscrption_Manager::instance();      // keep Arc alive
+    let mut client = mgr.lock().unwrap();    
+                    match parsedmessage{
+                          IncomingMessage::Subscribe(msg)=>{
+                            for s in msg.params{
+                                let res=client.subscribe(id.clone(), s.to_string());
+                            }
+                          }
+                          IncomingMessage::Unsubscribe(msg)=>{
+                            for s in msg.params{
+                                let res=client.subscribe(id.clone(), s.to_string());
+                            }
+                          }
+                    }
+                }
+              }
+              Ok(_) => {} 
+              Err(e) => {
+                eprintln!("Error processing message for user {}: {}", id, e);
+                break;
+            }
+          }
+        }
+
+       });
     }
 }

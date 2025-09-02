@@ -3,6 +3,8 @@ use once_cell::sync::Lazy;
 use std::sync::Mutex;
 use redis::Client;
 use serde::{Serialize,Deserialize};
+
+use crate::{types::out::Outgoingmessage, user::User, usermanager::Usermanager};
 #[derive(Serialize)]
 pub struct Subscrption_Manager{
     #[serde(skip_serializing,skip_deserializing)]
@@ -65,6 +67,32 @@ impl Subscrption_Manager{
         self.unsubscribe(userid.clone(), unscubribe);
        }
        self.subscription.remove(&userid);
+    }
+ pub   async   fn rediscallbackhandler(&mut self,message:String,channel:String) {
+        match  serde_json::from_str::<Outgoingmessage>(&message) {
+              Ok(parsedmessage)=>{
+                if let Some(subs)=self.reversesubscription.get(&channel){
+                    for sub in subs{
+                        let user_manager=Usermanager::instance();
+                        let mut manger_guard=user_manager.lock().await;
+                        if let Some(user_arc)=manger_guard.get_user(sub.to_string()){
+                             let mut user_grd=user_arc.lock().await;
+                             user_grd.emit(parsedmessage.try_into().clone());
+
+                             
+                        }
+                    }
+                }
+              }
+              Err(e) => {
+                eprintln!(
+                    "Error parsing OutgoingMessage from Redis on channel {}: {}. Message",
+                    channel, e
+                );
+            }
+        }
+         
+
     }
 
 

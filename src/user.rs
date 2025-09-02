@@ -1,10 +1,11 @@
 use std::{ sync::Arc};
 use tokio::net::TcpStream;
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
 use futures_util::{lock::Mutex, stream::{SplitSink, SplitStream}};
 use tokio_tungstenite::tungstenite::client;
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
+use crate::types::out::Outgoingmessage;
 use crate::types::IncomingMessage;
 use crate::usermanager::Usermanager;
 use crate::Subscription_manager::Subscrption_Manager;
@@ -32,6 +33,12 @@ impl User {
     pub async fn unscubribe(&mut self,subscription_data:String){
         let mut unsubscribe=self.subscription.lock().await;
         unsubscribe.retain(|sub|sub.to_string()!=subscription_data);
+    }
+    pub async fn emit(&mut self,message:Outgoingmessage)->Result<(),Box<dyn std::error::Error>>{
+      let  parsedmessage:String=serde_json::to_string(&message).unwrap();
+      let mut send=self.sender.lock().await;
+      send.send(Message::Text(parsedmessage)).await;
+      Ok(())
     }
     pub fn addlistner(&mut self){
        let id=self.userid.clone();

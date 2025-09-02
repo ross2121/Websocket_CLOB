@@ -1,6 +1,14 @@
 [package]
 name = "WS"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+tokio-tungstenite = "0.20"
+futures-util = "0.3"
+redis-queue-rs = "0.1.7"
+redis = "0.29.0" 
+once_cell = "1.8"

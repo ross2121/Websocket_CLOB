@@ -44,9 +44,7 @@ impl Subscrption_Manager{
                 }
             }
          }
-       
       }
-    
       pub fn subscribe(&mut self,userid:String,subscriptionmsg:String){
          let subscribemessage=self.subscription.get(&userid).unwrap();
           if(!subscribemessage.contains(&subscriptionmsg)){
@@ -61,8 +59,12 @@ impl Subscrption_Manager{
 
           }
     }
-    pub fn userleft(userid:String){
-
+    pub fn userleft(&mut self,userid:String){
+       let channel=self.subscription.get(&userid).map(|channel|channel.clone()).unwrap();
+       for unscubribe in channel{
+        self.unsubscribe(userid.clone(), unscubribe);
+       }
+       self.subscription.remove(&userid);
     }
 
 

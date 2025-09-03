@@ -1,3 +1,4 @@
+use std::future::IntoFuture;
 use std::{ sync::Arc};
 use tokio::net::TcpStream;
 use futures_util::{SinkExt, StreamExt};
@@ -49,17 +50,18 @@ impl User {
           match  message {
               Ok(Message::Text(text))=>{
                 if let Ok(parsedmessage)=serde_json::from_str::<IncomingMessage>(&text){
-                    let mgr = Subscrption_Manager::instance();      // keep Arc alive
-              let mut client = mgr.lock().unwrap();    
+                    let mgr = Subscrption_Manager::instance().await;      // keep Arc alive
+              let mut client = &mut mgr.lock().await;    
                     match parsedmessage{
                           IncomingMessage::Subscribe(msg)=>{
                             for s in msg.params{
                                 let res=client.subscribe(id.clone(), s.to_string());
+                                
                             }
                           }
                           IncomingMessage::Unsubscribe(msg)=>{
                             for s in msg.params{
-                                let res=client.subscribe(id.clone(), s.to_string());
+                                let res=client.unsubscribe(id.clone(), s.to_string());
                             }
                           }
                     }
@@ -75,9 +77,10 @@ impl User {
          let user_manager=Usermanager::instance();
          let mut guard=user_manager.lock().await;
          guard.user.remove(&id);
-         let sub_manager=Subscrption_Manager::instance();
-         let mut guard_manager=sub_manager.lock().unwrap();
+         let sub_manager=Subscrption_Manager::instance().await;
+         let mut guard_manager=sub_manager.lock().await;
           guard_manager.userleft(id.clone());
+          
        });
     }
 }
